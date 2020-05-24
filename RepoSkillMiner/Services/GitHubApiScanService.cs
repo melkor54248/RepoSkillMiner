@@ -32,17 +32,17 @@ namespace RepoSkillMiner.Services
        /// <param name="commitsWithFiles"></param>
        /// <param name="url"></param>
        /// <returns></returns>
-        public async Task<List<List<CommitDetails>>> GetCommits(  List<CommitsFull> commitsWithFiles, string url) 
+        public async Task<List<List<CommitDetails>>> GetCommitsDetails(  List<CommitsFull> commitsWithFiles, string url) 
         {
-            var repocommits = new List<List<CommitDetails>>();
+            var commiDetails = new List<List<CommitDetails>>();
             try
             {
 
                
 
                 var response = await Http.GetFromJsonAsync<List<CommitDetails>>(url);
-                repocommits.Add(response);
-                var commitlist = repocommits.SelectMany(x => x).ToList();
+                commiDetails.Add(response);
+                var commitlist = commiDetails.SelectMany(x => x).ToList();
                 var commitsDetailsUrl = commitlist.Select(x => x.Url);
                 foreach (var commiturl in commitsDetailsUrl)
                 {
@@ -51,7 +51,7 @@ namespace RepoSkillMiner.Services
                     commitsWithFiles.Add(commitresponse);
 
                 }
-                return repocommits;
+                return commiDetails;
 
             }
             catch (Exception ex)

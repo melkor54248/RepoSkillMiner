@@ -174,6 +174,7 @@ namespace RepoSkillMiner.Pages
             if (!string.IsNullOrEmpty(selectedRepo))
             {
                 commitsurls = repositories.Where(x => x.Name == selectedRepo).Select(x => x.Commits_url.Replace("{/sha}", ""));
+
             }
             else
             {
@@ -187,7 +188,7 @@ namespace RepoSkillMiner.Pages
                 displayurl = url.Replace(@"https://api.github.com/repos/", "").Replace(@"/commits", "");
                 Console.WriteLine($"Scanning {displayurl}");
                 this.StateHasChanged();
-                repocommits = await Service.GetCommits(commitsWithFiles, url);
+                repocommits = await Service.GetCommitsDetails(commitsWithFiles, url);
             }
 
             return commitsWithFiles;
