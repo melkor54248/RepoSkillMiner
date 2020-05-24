@@ -1,0 +1,155 @@
+﻿@page "/scan"
+
+
+@using Syncfusion.Blazor.Inputs
+
+
+
+
+
+<h1>Scan Repositories</h1>
+
+<p>This component demonstrates scanning data from GitHub and extracting technologies information using Language Understanding Cognitive Services.</p>
+
+@if (organization == null)
+{
+    <strong>Organization </strong>
+
+
+    <input type="text" id="txt_search" @bind="@SearchString" />
+
+    <SfProgressButton Content="Search" IsPrimary="true" @onclick="@Search"></SfProgressButton>
+
+
+}
+else
+{
+    <strong>Organization </strong>
+    <input type="text" class="marginTB10" id="txt_search" @bind="@SearchString" />
+    <SfProgressButton Content="Search" IsPrimary="true" @onclick="@Search"></SfProgressButton>
+    @if (reposCount >= 0)
+    {
+        <div class="card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Logo</th>
+
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                    <tr>
+                        <td>@organization.Name</td>
+                        <td><img src=@organization.Avatar_url alt=@organization.Name class="tdimg" /></td>
+
+                        <td>@organization.Description</td>
+                    </tr>
+
+                </tbody>
+            </table>
+        </div>
+        <p></p>
+        <div>
+            Found  @reposCount repositories.
+            How many do you want to scan?
+            <div class="slider marginTB10">
+                <input type="Number" @bind="@reposToScan" />
+
+            </div>
+            @if (reponames.Count > 0)
+            {
+
+                <div class="w-25">
+                    Or choose one from the list:
+                    <SfDropDownList TValue="string" TItem="string" Placeholder="Select a repo" DataSource="@reponames" @bind-Value="selectedRepo">
+
+                    </SfDropDownList>
+                </div>
+            }
+            <input type="checkbox" id="ckluis" @bind="UseLuis">
+            <label for="ckluis">LUIS </label>
+            @if (UseLuis)
+            {<div class="marginTB10">
+
+                    LUIS scan level?
+                    <div class="slider marginTB10">
+                        <SfSlider Min="1" Max="3" Type="SliderType.MinRange" @bind-Value="patchesToScan">
+                            <SliderTicksData Placement="Placement.After" ShowSmallTicks="false" LargeStep="1" SmallStep="1" Format="#"></SliderTicksData>
+                        </SfSlider>
+                    </div>
+                </div>
+            }
+            <p></p>
+            <SfProgressButton Content="Scan" IsPrimary="true" @onclick="@InitScan"></SfProgressButton>
+            <p></p>
+            @if (authorsList.Count > 0)
+            {
+                <div>
+                    <h2>Authors</h2>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Avatar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var author in authorsList)
+                            {
+                                var authorlink = "author/" + author.Login;
+                                <tr>
+                                    <td>
+                                        <NavLink class="nav-link" href="@authorlink" >
+                                            <span aria-hidden="true"></span> @author.Login
+                                        </NavLink>
+                                    </td>
+                                    <td><img src="@author.Avatar_url" alt="@author.Login" style="height:100px;" /></td>
+
+                                    <td>
+                                        @foreach (var tech in author.Technologies)
+                                        {
+                                            if (languageslogos.ContainsKey(tech.Name))
+                                            {
+                                                <i class="@languageslogos[tech.Name]" title="@tech.Name" style="font-size:54px"></i>
+                                            }
+                                            else
+                                            {
+                                                <i>@tech.Name</i>
+                                            }
+                                        }
+
+                                    </td>
+
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                if (scannpressed)
+                {
+                    <p>Scanning repo <label style="color:blue">@displayurl</label></p>
+                }
+                <div class="@((scannpressed? "spinner-border" : ""))"></div>
+            }
+
+
+
+
+        </div>
+    }
+
+}
+<style>
+    .e-control-wrapper.e-slider-container.e-horizontal {
+        height: 48px;
+        width: 50%;
+    }
+</style>
+
+

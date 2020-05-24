@@ -1,0 +1,77 @@
+﻿@page "/author/{name}"
+@inject HttpClient Http
+@using Syncfusion.Blazor.Charts
+
+@using Syncfusion.Blazor.Layouts
+
+@using GithubModels;
+
+@inject RepoSkillMiner.Services.AppData AppData
+
+<h3>Author</h3>
+
+@if (User != null)
+{
+    <div class="card">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Image</th>
+
+                    <th>Bio</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                <tr>
+                    <td>@User.Name</td>
+                    <td><img src=@User.Avatar_url alt=@User.Name class="tdimg" /></td>
+
+                    <td>@User.Bio</td>
+                </tr>
+
+            </tbody>
+        </table>
+    </div>
+}
+@if (Techs.Count > 0)
+{
+    <SfDashboardLayout Columns="2">
+        <DashboardLayoutPanels>
+            <DashboardLayoutPanel Col="0" SizeX="1" SizeY="1">
+                <HeaderTemplate><div>Technologies Distribution</div></HeaderTemplate>
+                <ContentTemplate>
+                    <div>
+                        <SfAccumulationChart>
+                            <AccumulationChartSeriesCollection>
+                                <AccumulationChartSeries DataSource="@Techs" XName="Name" YName="Count"
+                                                         Name="Name">
+                                </AccumulationChartSeries>
+                            </AccumulationChartSeriesCollection>
+
+                            <AccumulationChartLegendSettings Visible="true"></AccumulationChartLegendSettings>
+                        </SfAccumulationChart>
+                    </div>
+                </ContentTemplate>
+            </DashboardLayoutPanel>
+            <DashboardLayoutPanel Col="1" SizeX="1" SizeY="1">
+                <HeaderTemplate><div>Technologies Distribution</div></HeaderTemplate>
+                <ContentTemplate>
+                    <div>
+                        <SfChart Width="60%">
+                            <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Charts.ValueType.Category"></ChartPrimaryXAxis>
+
+                            <ChartSeriesCollection>
+                                <ChartSeries DataSource="@Techs" XName="Name" YName="Count" Type="ChartSeriesType.Column">
+                                </ChartSeries>
+                            </ChartSeriesCollection>
+                        </SfChart>
+                    </div>
+                </ContentTemplate>
+            </DashboardLayoutPanel>
+
+        </DashboardLayoutPanels>
+    </SfDashboardLayout>
+}
+ 
