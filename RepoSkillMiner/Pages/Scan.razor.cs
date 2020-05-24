@@ -127,14 +127,14 @@ namespace RepoSkillMiner.Pages
             authorsList.Clear();
             try
             {
-                organization = await Service.GetOrganization(SearchString);
-                repositories = await Service.GetRepositories(organization);
+                organization = await Service.GetOrganization(SearchString,Http);
+                repositories = await Service.GetRepositories(organization, Http);
                 var reposlist = repositories.ToList();
                 var tempcount = repositories.Count();
                 var i = 2;
                 while (tempcount == 100)// if there are more than 100 repos iterate  until you have them all.
                 {
-                    Repository[] temprepos = await Service.GetRepositories(organization, i);
+                    Repository[] temprepos = await Service.GetRepositories(organization, i, Http);
                     i++;
                     tempcount = temprepos.Count();
                     reposlist.AddRange(temprepos);
@@ -155,6 +155,8 @@ namespace RepoSkillMiner.Pages
         private void AddAuthorizationHeader()
         {
             Http.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", "token " + Configuration["GithubToken"]);
+            AppData.Http = Http;
+            
         }
 
 
@@ -174,13 +176,14 @@ namespace RepoSkillMiner.Pages
             if (!string.IsNullOrEmpty(selectedRepo))
             {
                 commitsurls = repositories.Where(x => x.Name == selectedRepo).Select(x => x.Commits_url.Replace("{/sha}", ""));
+               
 
             }
             else
             {
                 commitsurls = repositories.OrderBy(x => x.Name).Take(reposToScan).Select(x => x.Commits_url.Replace("{/sha}", ""));
             }
-            List<List<CommitDetails>> repocommits = new List<List<CommitDetails>>();
+            List<List<CommitDetails>> CommitDetailsLists = new List<List<CommitDetails>>();
             List<CommitsFull> commitsWithFiles = new List<CommitsFull>();
 
             foreach (var url in commitsurls)
@@ -188,7 +191,7 @@ namespace RepoSkillMiner.Pages
                 displayurl = url.Replace(@"https://api.github.com/repos/", "").Replace(@"/commits", "");
                 Console.WriteLine($"Scanning {displayurl}");
                 this.StateHasChanged();
-                repocommits = await Service.GetCommitsDetails(commitsWithFiles, url);
+                CommitDetailsLists = await Service.GetCommitsDetails(commitsWithFiles, url,Http);
             }
 
             return commitsWithFiles;
@@ -265,7 +268,7 @@ namespace RepoSkillMiner.Pages
                 if (UseLuis)
                 {
                     var patches = filesmerged.Select(x => new { x.Patch, x.Filename });
-                    var csPatches = patches.Where(x => x.Filename.EndsWith(".cs"));
+                    var csPatches = patches.Where(x => x.Filename.EndsWith(".cs")|| x.Filename.EndsWith(".js") || x.Filename.EndsWith(".html"));
                     Console.Write($"Patches csharp count:{csPatches.Count()}");
                     int c = 1;
                     var adjpatchesToScan = patchesToScan * 10;
@@ -282,7 +285,8 @@ namespace RepoSkillMiner.Pages
                             c++;
                             var techLuis = "";
 
-                            techLuis = await MakeLuisRequestAsync(Configuration["LuisKey"], patch.Patch);
+
+                            techLuis = await MakeLuisRequestAsync(Configuration["LuisKey"], patch.Patch??"none");
                             if (techLuis != "None" && techLuis != null && !tech.Contains(techLuis))
                             {
                                 tech.Add(techLuis);

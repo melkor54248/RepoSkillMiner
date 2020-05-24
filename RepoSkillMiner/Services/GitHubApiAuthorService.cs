@@ -16,7 +16,7 @@ namespace RepoSkillMiner.Services
         public GitHubApiAuthorService(AppData appData, HttpClient http)
         {
             AppData = appData;
-            Http = http;
+           // Http = http;
         }
         /// <summary>
         /// Get a list of technologies and the number of commits for each one, given the author name.
@@ -35,7 +35,7 @@ namespace RepoSkillMiner.Services
         /// <returns>a <see cref="User"/></returns>
         public async Task<User> GetUserDetailsAsync(string name)
         {
-            var user = await Http.GetFromJsonAsync<User>("https://api.github.com/users/" + name);
+            var user = await AppData.Http.GetFromJsonAsync<User>("https://api.github.com/users/" + name);
             return user;
         }
     }

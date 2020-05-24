@@ -11,11 +11,11 @@ namespace RepoSkillMiner.Services
     {
 
 
-        public Task<List<List<CommitDetails>>> GetCommitsDetails(  List<CommitsFull> commitsWithFiles, string url);
-        public Task<Repository[]> GetRepositories(Organization organization);
+        public Task<List<List<CommitDetails>>> GetCommitsDetails(  List<CommitsFull> commitsWithFiles, string url, HttpClient Http);
+        public Task<Repository[]> GetRepositories(Organization organization, HttpClient Http);
 
-        public Task<Repository[]> GetRepositories(Organization organization,int pageNumber);
-        public Task<Organization> GetOrganization(string SearchString);
+        public Task<Repository[]> GetRepositories(Organization organization,int pageNumber, HttpClient Http);
+        public Task<Organization> GetOrganization(string SearchString,HttpClient Http);
          
       }
 }
