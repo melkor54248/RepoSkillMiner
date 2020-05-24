@@ -1,4 +1,4 @@
-﻿ 
+﻿
 using GithubModels;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -11,7 +11,7 @@ using System.Linq;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 
- 
+
 
 namespace RepoSkillMiner.Pages
 {
@@ -54,7 +54,8 @@ namespace RepoSkillMiner.Pages
         {"YAML","fa fa-file-code-o" },
         {"TypeScript","devicon-typescript-plain colored" },
         {"React","devicon-react-original" },
-        {"Ignore_List","devicon-github-plain" }
+        {"Ignore_List","devicon-github-plain" },
+        {"Angular","devicon-angularjs-plain colored" }
     };
 
 
@@ -90,7 +91,7 @@ namespace RepoSkillMiner.Pages
         private IScanService Service { get; set; }
         #endregion Dependency Injection
 
-       
+
         /// <summary>
         ///  Handles Scan button Click
         /// </summary>
@@ -127,7 +128,7 @@ namespace RepoSkillMiner.Pages
             authorsList.Clear();
             try
             {
-                organization = await Service.GetOrganization(SearchString,Http);
+                organization = await Service.GetOrganization(SearchString, Http);
                 repositories = await Service.GetRepositories(organization, Http);
                 var reposlist = repositories.ToList();
                 var tempcount = repositories.Count();
@@ -156,7 +157,7 @@ namespace RepoSkillMiner.Pages
         {
             Http.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", "token " + Configuration["GithubToken"]);
             AppData.Http = Http;
-            
+
         }
 
 
@@ -176,7 +177,7 @@ namespace RepoSkillMiner.Pages
             if (!string.IsNullOrEmpty(selectedRepo))
             {
                 commitsurls = repositories.Where(x => x.Name == selectedRepo).Select(x => x.Commits_url.Replace("{/sha}", ""));
-               
+
 
             }
             else
@@ -191,7 +192,7 @@ namespace RepoSkillMiner.Pages
                 displayurl = url.Replace(@"https://api.github.com/repos/", "").Replace(@"/commits", "");
                 Console.WriteLine($"Scanning {displayurl}");
                 this.StateHasChanged();
-                CommitDetailsLists = await Service.GetCommitsDetails(commitsWithFiles, url,Http);
+                CommitDetailsLists = await Service.GetCommitsDetails(commitsWithFiles, url, Http);
             }
 
             return commitsWithFiles;
@@ -268,7 +269,7 @@ namespace RepoSkillMiner.Pages
                 if (UseLuis)
                 {
                     var patches = filesmerged.Select(x => new { x.Patch, x.Filename });
-                    var csPatches = patches.Where(x => x.Filename.EndsWith(".cs")|| x.Filename.EndsWith(".js") || x.Filename.EndsWith(".html"));
+                    var csPatches = patches.Where(x => x.Filename.EndsWith(".cs") || x.Filename.EndsWith(".js") || x.Filename.EndsWith(".html"));
                     Console.Write($"Patches csharp count:{csPatches.Count()}");
                     int c = 1;
                     var adjpatchesToScan = patchesToScan * 10;
@@ -286,7 +287,7 @@ namespace RepoSkillMiner.Pages
                             var techLuis = "";
 
 
-                            techLuis = await MakeLuisRequestAsync(Configuration["LuisKey"], patch.Patch??"none");
+                            techLuis = await MakeLuisRequestAsync(Configuration["LuisKey"], patch.Patch ?? "none");
                             if (techLuis != "None" && techLuis != null && !tech.Contains(techLuis))
                             {
                                 tech.Add(techLuis);
@@ -307,5 +308,5 @@ namespace RepoSkillMiner.Pages
             }
         }
     }
-      
+
 }
