@@ -269,11 +269,11 @@ namespace RepoSkillMiner.Pages
                 if (UseLuis)
                 {
                     var patches = filesmerged.Select(x => new { x.Patch, x.Filename });
-                    var csPatches = patches.Where(x => x.Filename.EndsWith(".cs") || x.Filename.EndsWith(".js") || x.Filename.EndsWith(".html"));
-                    Console.Write($"Patches csharp count:{csPatches.Count()}");
+                    var csPatches = patches.Where(x => (x.Filename.EndsWith(".cs") || x.Filename.EndsWith(".js") || x.Filename.EndsWith(".html"))&& !x.Filename.Contains("config.js") );
+                    Console.WriteLine($"Patches count:{csPatches.Count()}");
                     int c = 1;
                     var adjpatchesToScan = patchesToScan * 10;
-                    Console.WriteLine($"ll={adjpatchesToScan}");
+                    Console.WriteLine($"patches to scan={adjpatchesToScan}");
                     foreach (var patch in csPatches.Take(csPatches.Count() > adjpatchesToScan ? adjpatchesToScan : csPatches.Count()))
                     {
                         if (patch != null)
@@ -292,7 +292,7 @@ namespace RepoSkillMiner.Pages
                             {
                                 tech.Add(techLuis);
                                 techWeighted.Add(techLuis, 1);
-                                Console.WriteLine("LUIS match " + techLuis);
+                                Console.WriteLine($"LUIS match: {techLuis} in file: {patch.Filename}, Utterence:{patch.Patch}");
                             }
                             if (techLuis != "None" && techWeighted.ContainsKey(techLuis.ToString()))
                             {
