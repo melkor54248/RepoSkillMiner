@@ -273,6 +273,8 @@ namespace RepoSkillMiner.Pages
                     Console.WriteLine($"Patches count:{csPatches.Count()}");
                     int c = 1;
                     var adjpatchesToScan = patchesToScan * 10;
+                    if (patchesToScan == 5)
+                        adjpatchesToScan = csPatches.Count();
                     Console.WriteLine($"patches to scan={adjpatchesToScan}");
                     foreach (var patch in csPatches.Take(csPatches.Count() > adjpatchesToScan ? adjpatchesToScan : csPatches.Count()))
                     {

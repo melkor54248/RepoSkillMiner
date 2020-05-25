@@ -76,7 +76,7 @@ else
 
                     LUIS scan level?
                     <div class="slider marginTB10">
-                        <SfSlider Min="1" Max="3" Type="SliderType.MinRange" @bind-Value="patchesToScan">
+                        <SfSlider Min="1" Max="5" Type="SliderType.MinRange" @bind-Value="patchesToScan">
                             <SliderTicksData Placement="Placement.After" ShowSmallTicks="false" LargeStep="1" SmallStep="1" Format="#"></SliderTicksData>
                         </SfSlider>
                     </div>
@@ -94,6 +94,7 @@ else
                             <tr>
                                 <th>Name</th>
                                 <th>Avatar</th>
+                                <th>Technologies</th>
                             </tr>
                         </thead>
                         <tbody>
