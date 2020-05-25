@@ -97,7 +97,7 @@ else
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var author in authorsList)
+                            @foreach (var author in authorsList.Where(x=>!string.IsNullOrEmpty(x.Login) ))
                             {
                                 var authorlink = "author/" + author.Login;
                                 <tr>
