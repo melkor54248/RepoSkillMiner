@@ -40,7 +40,7 @@ namespace RepoSkillMiner.Services
 
 
 
-                var commitDetailList = await Http.GetFromJsonAsync<List<CommitDetails>>(url);// + "?per_page=100");
+                var commitDetailList = await Http.GetFromJsonAsync<List<CommitDetails>>(url + "?per_page=100");// + "?per_page=100");
                 int i = 2;
                 var tempList = commitDetailList;
                 while (tempList.Count == 100)
