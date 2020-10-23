@@ -8,6 +8,7 @@ using System.Net.Http.Json;
 using RepoSkillMiner.Utilities;
 using System.Net.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace RepoSkillMiner.Services
 {
@@ -15,8 +16,15 @@ namespace RepoSkillMiner.Services
     {
         [Inject]
         private IConfiguration Configuration { get; set; }
+         
+        
+        [Inject]
+        ILogger Logger { get; set; }
+        [Inject]
+        ILoggerFactory LoggerFactory { get; set; }
 
-      //  HttpClient Http;
+
+        //  HttpClient Http;
 
         //public GitHubApiScanService(HttpClient http)
         //{
@@ -32,7 +40,7 @@ namespace RepoSkillMiner.Services
         /// <param name="commitsWithFiles"></param>
         /// <param name="url"></param>
         /// <returns></returns>
-        public async Task<List<List<CommitDetails>>> GetCommitsDetails(List<CommitsFull> commitsWithFiles, string url, HttpClient Http)
+        public async Task  GetCommitsDetails(List<CommitsFull> commitsWithFiles, string url, HttpClient Http)
         {
             var ListOfCommitDetailsList = new List<List<CommitDetails>>();
             try
@@ -59,18 +67,18 @@ namespace RepoSkillMiner.Services
                     commitsWithFiles.Add(commitresponse);
 
                 }
-                return ListOfCommitDetailsList;
+               
 
             }
             catch (Exception ex)
             {
 
                 Console.WriteLine(ex.Message);
-                return null;
+              
             }
         }
 
-       
+
 
         /// <summary>
         /// Get The organisation given the name.
@@ -103,6 +111,143 @@ namespace RepoSkillMiner.Services
             return Http.GetFromJsonAsync<Repository[]>(organization.Repos_url + $"?page={pageNumber}&per_page=100");
         }
 
+        /// <summary>
+        /// Extract author data and tachnologies given the commits data as input.
+        /// </summary>
+        /// <param name="commitsWithFiles"></param>
+        /// <returns></returns>
+        public async Task<List<AuthorsAndTechs>> ReportFindingsAsync(List<CommitsFull> commitsWithFiles, bool UseLuis, int patchesToScan, List<AuthorsAndTechs> authorsList,HttpClient http)
+        {
+            try
+            {
+                List<AuthorDetails> AuthorsFull = new List<AuthorDetails>();
+                Dictionary<string, int> techWeighted;
+                List<string> tech;
+                var authors = commitsWithFiles.Select(x => x.Author?.Login).Distinct().ToList();
+
+                foreach (var author in authors)
+                {
+                    var mycommits = commitsWithFiles.Where(x => x.Author != null && x.Author.Login == author).ToList();
+                    var files = mycommits.Select(x => x.Files.Select(f => { f.Date = x.Commit.Committer.Date; return f; })).ToList();
+                    var filesmerged = files.SelectMany(f => f).ToList();
+                    var filenames = filesmerged.Select(n => n.Filename);
+
+                    var techWithDates = new List<TechWithDates>();
+
+                    var extentions = filenames.Where(f => f.Contains(".")).Select(x => x.Substring(x.LastIndexOf("."), x.Length - x.LastIndexOf("."))).GroupBy(x => x).
+        Select(y => new { Extention = y.Key, Count = y.Count() });
+                    var extentionsreference = FileExtensions.GetXml;
+
+                    tech = new List<string>();
+                    techWeighted = new Dictionary<string, int>();
+                    foreach (var file in filesmerged)
+                    {
+                        var filename = file.Filename;
+                        if (filename.Contains('.'))
+                        {
+                            int pos = filename.LastIndexOf(".");
+                            var extention = filename.Substring(pos, filename.Length - pos);
+
+                            if (extentionsreference.Descendants("Extension").Any(x => x.Value == extention))
+                            {
+                                string techCanditate = extentionsreference.Descendants("Extension").FirstOrDefault(x => x.Value == extention).Parent.Parent.Element("Name").Value;
+                                if (!tech.Contains(techCanditate))
+                                {
+                                    tech.Add(techCanditate);
+                                    // techWithDates.Add(new TechWithDates() { Tech = techCanditate, StartDate = file.date, EndDate = filesmerged.Where(x => x.filename == filename).Select(x => x.date).Max() });
+                                    techWeighted.Add(techCanditate, extentions.Where(x => x.Extention == extention).Select(x => x.Count).FirstOrDefault());
+                                }
+                            }
+                        }
+                    }
+
+                    if (UseLuis)
+                    {
+                        var patches = filesmerged.Select(x => new { x.Patch, x.Filename });
+                        var csPatches = patches.Where(x => (x.Filename.EndsWith(".cs") || x.Filename.EndsWith(".js") || x.Filename.EndsWith(".html")) && !x.Filename.Contains("config.js"));
+                        Console.WriteLine($"Patches count:{csPatches.Count()}");
+                        int c = 1;
+                        var adjpatchesToScan = patchesToScan * 10;
+                        if (patchesToScan == 5)
+                            adjpatchesToScan = csPatches.Count();
+                        Console.WriteLine($"patches to scan={adjpatchesToScan}");
+                        foreach (var patch in csPatches.Take(csPatches.Count() > adjpatchesToScan ? adjpatchesToScan : csPatches.Count()))
+                        {
+                            if (patch != null)
+                            {
+                                if (c == 3)
+                                {
+                                    System.Threading.Thread.Sleep(1000);
+                                    c = 0;
+                                }
+                                c++;
+                                var techLuis = "";
+
+
+                                
+                                techLuis = await MakeLuisRequestAsync(LuisKey, patch.Patch ?? "none",http);
+                                if (techLuis != "None" && techLuis != null && !tech.Contains(techLuis))
+                                {
+                                    tech.Add(techLuis);
+                                    techWeighted.Add(techLuis, 1);
+                                    Console.WriteLine($"LUIS match: {techLuis} in file: {patch.Filename}, Utterence:{patch.Patch}");
+                                }
+                                if (techLuis != "None" && techWeighted.ContainsKey(techLuis.ToString()))
+                                {
+                                    techWeighted[techLuis]++;
+                                }
+                            }
+                        }
+                    }
+
+                    authorsList.Add(new AuthorsAndTechs() { Login = author, Avatar_url = AuthorsFull.Where(a => a.Login == author).Select(a => a.Avatar_url).FirstOrDefault(), Technologies = techWeighted.Select(p => new GithubModels.TechnologiesCount { Name = p.Key, Count = p.Value }).ToList(), TechWithDates = techWithDates });
+                   
+                }
+                return authorsList;
+            }
+            catch (Exception ex)
+            {
+
+               Console.WriteLine("Error:"+ex.Message+ex.StackTrace);
+                return new List<AuthorsAndTechs>();
+            }
+            
+
+        }
+        /// <summary>
+        /// Make a call to Luis with a string input.
+        /// </summary>
+        /// <param name="key">Luis Subscription key</param>
+        /// <param name="utterance">The input utterance. </param>
+        /// <returns></returns>
+        private async Task<string> MakeLuisRequestAsync(string key, string utterance,HttpClient http)
+        {
+            var client = new System.Net.Http.HttpClient();
+
+            // The request header contains your subscription key
+            client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", key);
+
+            var endpointUri = String.Format(LuisEndPoint + "&q={0}", utterance.Substring(0, Math.Min(utterance.Length, 450)));
+
+            LuisResponse luisResponse = await http.GetFromJsonAsync<LuisResponse>(endpointUri);
+
+            // Return the top scoring intent from Luis.
+
+            return luisResponse?.TopScoringIntent?.Intent;
+        }
+
+        public   string LuisKey { get; set; }
+        public   string LuisEndPoint { get; set; }
+
+        public IEnumerable<string> GetCommitUrls(Repository[] repositories, int reposToScan)
+        {
+            return repositories.OrderBy(x => x.Name).Take(reposToScan).Select(x => x.Commits_url.Replace("{/sha}", ""));
+        }
+
+        public IEnumerable<string> GetCommitUrls(Repository[] repositories, string selectedRepo)
+        {
+            return repositories.Where(x => x.Name == selectedRepo).Select(x => x.Commits_url.Replace("{/sha}", ""));
+        }
 
     }
 }

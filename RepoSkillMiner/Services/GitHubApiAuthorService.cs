@@ -11,12 +11,12 @@ namespace RepoSkillMiner.Services
     public class GitHubApiAuthorService : IAuthorService
     {
         RepoSkillMiner.Services.AppData AppData;
-        HttpClient Http;
+       
 
-        public GitHubApiAuthorService(AppData appData, HttpClient http)
+        public GitHubApiAuthorService(AppData appData)
         {
             AppData = appData;
-           // Http = http;
+          
         }
         /// <summary>
         /// Get a list of technologies and the number of commits for each one, given the author name.
