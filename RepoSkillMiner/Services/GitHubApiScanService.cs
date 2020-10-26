@@ -32,6 +32,11 @@ namespace RepoSkillMiner.Services
 
         //}
 
+        private List<AuthorDetails> GetAuthorDetails(List<CommitsFull> commits)
+        {
+            return commits.Where(y => y.Author != null).Select(x => x.Author).DistinctBy(a => a.Login).ToList();
+        }
+
         RepoSkillMiner.Services.AppData AppData { get; set; }
         /// <summary>
         /// Get a list with <see cref="CommitDetails"/> lists

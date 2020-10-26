@@ -88,7 +88,7 @@ namespace RepoSkillMiner.Pages
         private IConfiguration Configuration { get; set; }
 
         [Inject]
-        private IScanService Service { get; set; }
+        private IScanService service { get; set; }
         #endregion Dependency Injection
 
 
@@ -101,12 +101,14 @@ namespace RepoSkillMiner.Pages
             AppData.Configuration = Configuration;
             authorsList.Clear();
             scannpressed = true;
-            commitsWithFiles = await ScanRepos(repositories, reposToScan, selectedRepo);
-            AuthorsFull = commitsWithFiles.Where(y => y.Author != null).Select(x => x.Author).DistinctBy(a => a.Login).ToList();
-            Service.LuisKey = Configuration["LuisKey"];
-            Service.LuisEndPoint = Configuration["LuisEndPoint"];
-            AppData.AuthorsAndTechs = await Service.ReportFindingsAsync(commitsWithFiles, UseLuis, patchesToScan, authorsList,Http);
+            AuthorsFull = service.GetAuthorDetails(commitsWithFiles);
+            
+            service.LuisKey = Configuration["LuisKey"];
+            service.LuisEndPoint = Configuration["LuisEndPoint"];
+            AppData.AuthorsAndTechs = await service.ReportFindingsAsync(commitsWithFiles, UseLuis, patchesToScan, authorsList, Http);
         }
+
+       
 
         /// <summary>
         /// Handles Search button Click
@@ -131,14 +133,14 @@ namespace RepoSkillMiner.Pages
             authorsList.Clear();
             try
             {
-                organization = await Service.GetOrganization(SearchString, Http);
-                repositories = await Service.GetRepositories(organization, Http);
+                organization = await service.GetOrganization(SearchString, Http);
+                repositories = await service.GetRepositories(organization, Http);
                 var reposlist = repositories.ToList();
                 var tempcount = repositories.Count();
                 var i = 2;
                 while (tempcount == 100)// if there are more than 100 repos iterate  until you have them all.
                 {
-                    Repository[] temprepos = await Service.GetRepositories(organization, i, Http);
+                    Repository[] temprepos = await service.GetRepositories(organization, i, Http);
                     i++;
                     tempcount = temprepos.Count();
                     reposlist.AddRange(temprepos);
@@ -179,12 +181,12 @@ namespace RepoSkillMiner.Pages
             IEnumerable<string> commitsurls;
             if (!string.IsNullOrEmpty(selectedRepo))
             {
-                commitsurls = Service.GetCommitUrls(repositories, selectedRepo);
+                commitsurls = service.GetCommitUrls(repositories, selectedRepo);
 
             }
             else
             {
-                commitsurls = Service.GetCommitUrls(repositories, reposToScan);
+                commitsurls = service.GetCommitUrls(repositories, reposToScan);
             }
            
             List<CommitsFull> commitsWithFiles = new List<CommitsFull>();
@@ -194,7 +196,7 @@ namespace RepoSkillMiner.Pages
                 displayurl = url.Replace(@"https://api.github.com/repos/", "").Replace(@"/commits", "");
                 Console.WriteLine($"Scanning {displayurl}");
                 this.StateHasChanged();
-                await Service.GetCommitsDetails(commitsWithFiles, url, Http);
+                await service.GetCommitsDetails(commitsWithFiles, url, Http);
             }
 
             return commitsWithFiles;
