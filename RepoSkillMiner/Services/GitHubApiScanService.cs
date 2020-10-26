@@ -32,7 +32,7 @@ namespace RepoSkillMiner.Services
 
         //}
 
-        private List<AuthorDetails> GetAuthorDetails(List<CommitsFull> commits)
+        public List<AuthorDetails> GetAuthorDetails(List<CommitsFull> commits)
         {
             return commits.Where(y => y.Author != null).Select(x => x.Author).DistinctBy(a => a.Login).ToList();
         }

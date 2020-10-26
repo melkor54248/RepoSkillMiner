@@ -101,6 +101,7 @@ namespace RepoSkillMiner.Pages
             AppData.Configuration = Configuration;
             authorsList.Clear();
             scannpressed = true;
+            commitsWithFiles = await ScanRepos(repositories, reposToScan, selectedRepo);
             AuthorsFull = service.GetAuthorDetails(commitsWithFiles);
             
             service.LuisKey = Configuration["LuisKey"];
