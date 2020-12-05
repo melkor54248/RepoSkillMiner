@@ -88,7 +88,7 @@ namespace RepoSkillMiner.Pages
         private IConfiguration Configuration { get; set; }
 
         [Inject]
-        private IScanService Service { get; set; }
+        private IScanService service { get; set; }
         #endregion Dependency Injection
 
 
@@ -98,12 +98,18 @@ namespace RepoSkillMiner.Pages
         /// <returns>List of Commits <see cref="CommitsFull"/></returns>
         public async Task InitScan()
         {
+            AppData.Configuration = Configuration;
             authorsList.Clear();
             scannpressed = true;
             commitsWithFiles = await ScanRepos(repositories, reposToScan, selectedRepo);
-            AuthorsFull = commitsWithFiles.Where(y => y.Author != null).Select(x => x.Author).DistinctBy(a => a.Login).ToList();
-            await ReportFindingsAsync(commitsWithFiles);
+            AuthorsFull = service.GetAuthorDetails(commitsWithFiles);
+            
+            service.LuisKey = Configuration["LuisKey"];
+            service.LuisEndPoint = Configuration["LuisEndPoint"];
+            AppData.AuthorsAndTechs = await service.ReportFindingsAsync(commitsWithFiles, UseLuis, patchesToScan, authorsList, Http);
         }
+
+       
 
         /// <summary>
         /// Handles Search button Click
@@ -128,14 +134,14 @@ namespace RepoSkillMiner.Pages
             authorsList.Clear();
             try
             {
-                organization = await Service.GetOrganization(SearchString, Http);
-                repositories = await Service.GetRepositories(organization, Http);
+                organization = await service.GetOrganization(SearchString, Http);
+                repositories = await service.GetRepositories(organization, Http);
                 var reposlist = repositories.ToList();
                 var tempcount = repositories.Count();
                 var i = 2;
                 while (tempcount == 100)// if there are more than 100 repos iterate  until you have them all.
                 {
-                    Repository[] temprepos = await Service.GetRepositories(organization, i, Http);
+                    Repository[] temprepos = await service.GetRepositories(organization, i, Http);
                     i++;
                     tempcount = temprepos.Count();
                     reposlist.AddRange(temprepos);
@@ -176,15 +182,14 @@ namespace RepoSkillMiner.Pages
             IEnumerable<string> commitsurls;
             if (!string.IsNullOrEmpty(selectedRepo))
             {
-                commitsurls = repositories.Where(x => x.Name == selectedRepo).Select(x => x.Commits_url.Replace("{/sha}", ""));
-
+                commitsurls = service.GetCommitUrls(repositories, selectedRepo);
 
             }
             else
             {
-                commitsurls = repositories.OrderBy(x => x.Name).Take(reposToScan).Select(x => x.Commits_url.Replace("{/sha}", ""));
+                commitsurls = service.GetCommitUrls(repositories, reposToScan);
             }
-            List<List<CommitDetails>> CommitDetailsLists = new List<List<CommitDetails>>();
+           
             List<CommitsFull> commitsWithFiles = new List<CommitsFull>();
 
             foreach (var url in commitsurls)
@@ -192,123 +197,14 @@ namespace RepoSkillMiner.Pages
                 displayurl = url.Replace(@"https://api.github.com/repos/", "").Replace(@"/commits", "");
                 Console.WriteLine($"Scanning {displayurl}");
                 this.StateHasChanged();
-                CommitDetailsLists = await Service.GetCommitsDetails(commitsWithFiles, url, Http);
+                await service.GetCommitsDetails(commitsWithFiles, url, Http);
             }
 
             return commitsWithFiles;
         }
 
+       
 
-        /// <summary>
-        /// Make a call to Luis with a string input.
-        /// </summary>
-        /// <param name="key">Luis Subscription key</param>
-        /// <param name="utterance">The input utterance. </param>
-        /// <returns></returns>
-        private async Task<string> MakeLuisRequestAsync(string key, string utterance)
-        {
-            var client = new System.Net.Http.HttpClient();
-
-            // The request header contains your subscription key
-            client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", key);
-
-            var endpointUri = String.Format(Configuration["LuisEndPoint"] + "&q={0}", utterance.Substring(0, Math.Min(utterance.Length, 450)));
-
-            LuisResponse luisResponse = await Http.GetFromJsonAsync<LuisResponse>(endpointUri);
-
-            // Return the top scoring intent from Luis.
-
-            return luisResponse.TopScoringIntent.Intent;
-        }
-
-        /// <summary>
-        /// Extract author data and tachnologies given the commits data as input.
-        /// </summary>
-        /// <param name="commitsWithFiles"></param>
-        /// <returns></returns>
-        private async Task ReportFindingsAsync(List<CommitsFull> commitsWithFiles)
-        {
-            var authors = commitsWithFiles.Select(x => x.Author?.Login).Distinct().ToList();
-
-            foreach (var author in authors)
-            {
-                var mycommits = commitsWithFiles.Where(x => x.Author != null && x.Author.Login == author).ToList();
-                var files = mycommits.Select(x => x.Files.Select(f => { f.Date = x.Commit.Committer.Date; return f; })).ToList();
-                var filesmerged = files.SelectMany(f => f).ToList();
-                var filenames = filesmerged.Select(n => n.Filename);
-
-                var techWithDates = new List<TechWithDates>();
-
-                var extentions = filenames.Where(f => f.Contains(".")).Select(x => x.Substring(x.LastIndexOf("."), x.Length - x.LastIndexOf("."))).GroupBy(x => x).
-    Select(y => new { Extention = y.Key, Count = y.Count() });
-                var extentionsreference = FileExtensions.GetXml;
-
-                tech = new List<string>();
-                techWeighted = new Dictionary<string, int>();
-                foreach (var file in filesmerged)
-                {
-                    var filename = file.Filename;
-                    if (filename.Contains('.'))
-                    {
-                        int pos = filename.LastIndexOf(".");
-                        var extention = filename.Substring(pos, filename.Length - pos);
-
-                        if (extentionsreference.Descendants("Extension").Any(x => x.Value == extention))
-                        {
-                            string techCanditate = extentionsreference.Descendants("Extension").FirstOrDefault(x => x.Value == extention).Parent.Parent.Element("Name").Value;
-                            if (!tech.Contains(techCanditate))
-                            {
-                                tech.Add(techCanditate);
-                                // techWithDates.Add(new TechWithDates() { Tech = techCanditate, StartDate = file.date, EndDate = filesmerged.Where(x => x.filename == filename).Select(x => x.date).Max() });
-                                techWeighted.Add(techCanditate, extentions.Where(x => x.Extention == extention).Select(x => x.Count).FirstOrDefault());
-                            }
-                        }
-                    }
-                }
-
-                if (UseLuis)
-                {
-                    var patches = filesmerged.Select(x => new { x.Patch, x.Filename });
-                    var csPatches = patches.Where(x => (x.Filename.EndsWith(".cs") || x.Filename.EndsWith(".js") || x.Filename.EndsWith(".html"))&& !x.Filename.Contains("config.js") );
-                    Console.WriteLine($"Patches count:{csPatches.Count()}");
-                    int c = 1;
-                    var adjpatchesToScan = patchesToScan * 10;
-                    if (patchesToScan == 5)
-                        adjpatchesToScan = csPatches.Count();
-                    Console.WriteLine($"patches to scan={adjpatchesToScan}");
-                    foreach (var patch in csPatches.Take(csPatches.Count() > adjpatchesToScan ? adjpatchesToScan : csPatches.Count()))
-                    {
-                        if (patch != null)
-                        {
-                            if (c == 3)
-                            {
-                                System.Threading.Thread.Sleep(1000);
-                                c = 0;
-                            }
-                            c++;
-                            var techLuis = "";
-
-
-                            techLuis = await MakeLuisRequestAsync(Configuration["LuisKey"], patch.Patch ?? "none");
-                            if (techLuis != "None" && techLuis != null && !tech.Contains(techLuis))
-                            {
-                                tech.Add(techLuis);
-                                techWeighted.Add(techLuis, 1);
-                                Console.WriteLine($"LUIS match: {techLuis} in file: {patch.Filename}, Utterence:{patch.Patch}");
-                            }
-                            if (techLuis != "None" && techWeighted.ContainsKey(techLuis.ToString()))
-                            {
-                                techWeighted[techLuis]++;
-                            }
-                        }
-                    }
-                }
-
-                authorsList.Add(new AuthorsAndTechs() { Login = author, Avatar_url = AuthorsFull.Where(a => a.Login == author).Select(a => a.Avatar_url).FirstOrDefault(), Technologies = techWeighted.Select(p => new GithubModels.TechnologiesCount { Name = p.Key, Count = p.Value }).ToList(), TechWithDates = techWithDates });
-                AppData.AuthorsAndTechs = new List<AuthorsAndTechs>();
-                AppData.AuthorsAndTechs = authorsList;
-            }
-        }
     }
 
 }

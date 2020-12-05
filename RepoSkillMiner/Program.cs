@@ -20,8 +20,8 @@ namespace RepoSkillMiner
             builder.RootComponents.Add<App>("app");
             Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(builder.Configuration.GetSection("SyncFusionKey").Value); 
             builder.Services.AddTransient(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-            builder.Services.AddSingleton<IScanService, GitHubApiScanService>();
-            builder.Services.AddSingleton<IAuthorService, GitHubApiAuthorService>();
+            builder.Services.AddScoped <IScanService, GitHubApiScanService>();
+            builder.Services.AddScoped<IAuthorService, GitHubApiAuthorService>();
             builder.Services.AddSingleton<AppData>();
             builder.Services.AddSingleton<AppState>();
             builder.Services.AddSyncfusionBlazor();
