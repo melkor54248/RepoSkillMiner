@@ -92,9 +92,9 @@ namespace RepoSkillMiner.Services
         /// <returns>An <see cref="Organization"/></returns>
         public async Task<Organization> GetOrganization(string SearchString, HttpClient Http)
         {
-            using var httpResponse = await Http.GetAsync("https://api.github.com/orgs/" + SearchString);
+          using var httpResponse = await Http.GetAsync("https://api.github.com/orgs/" + SearchString);
 
-            if (!httpResponse.IsSuccessStatusCode)
+            if (httpResponse.IsSuccessStatusCode)
             {
                 // set error message for display, log to console and return
                 return await  httpResponse.Content.ReadFromJsonAsync<Organization>();
@@ -116,11 +116,20 @@ namespace RepoSkillMiner.Services
         /// <summary>
         /// Get all Repositories for the given organization
         /// </summary>
-        /// <param name="organization">The <see cref="Organization"/></param>
+        /// <param name="owner">The name of the organisation or user </param>
         /// <returns>List of <see cref="Repository"/></returns>
         public Task<Repository[]> GetRepositories(string owner, HttpClient Http)
         {
             return Http.GetFromJsonAsync<Repository[]>("https://api.github.com/users/"+owner+"/repos" + "?per_page=100");
+        }
+        /// <summary>
+        /// Get all Repositories for the given organization
+        /// </summary>
+        /// <param name="owner">The name of the organisation or user </param>
+        /// <returns>List of <see cref="Repository"/></returns>
+        public Task<Repository[]> GetRepositories(string owner, int pageNumber, HttpClient Http)
+        {
+            return Http.GetFromJsonAsync<Repository[]>("https://api.github.com/users/" + owner + "/repos" + $"?page={pageNumber}&per_page=100");
         }
 
         /// <summary>
