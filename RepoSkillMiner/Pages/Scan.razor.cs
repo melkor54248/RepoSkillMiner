@@ -60,6 +60,7 @@ namespace RepoSkillMiner.Pages
 
 
         private Organization organization;
+        private User owner;
 
         private int reposCount = -1;
         private Repository[] repositories;
@@ -134,18 +135,21 @@ namespace RepoSkillMiner.Pages
             authorsList.Clear();
             try
             {
-                organization = await service.GetOrganization(SearchString, Http);
-                repositories = await service.GetRepositories(organization, Http);
+                 organization = await service.GetOrganization(SearchString, Http);
+                if (organization.Id == 0)
+                    owner = await service.GetUser(SearchString, Http);
+                //repositories = await service.GetRepositories(organization, Http);
+                repositories = await service.GetRepositories(SearchString, Http);
                 var reposlist = repositories.ToList();
                 var tempcount = repositories.Count();
-                var i = 2;
-                while (tempcount == 100)// if there are more than 100 repos iterate  until you have them all.
-                {
-                    Repository[] temprepos = await service.GetRepositories(organization, i, Http);
-                    i++;
-                    tempcount = temprepos.Count();
-                    reposlist.AddRange(temprepos);
-                }
+                //int i = 2;
+                //while (tempcount == 100)// if there are more than 100 repos iterate  until you have them all.
+                //{
+                //    Repository[] temprepos = await service.GetRepositories(organization, i, Http);
+                //    i++;
+                //    tempcount = temprepos.Count();
+                //    reposlist.AddRange(temprepos);
+                //}
                 repositories = reposlist.ToArray();
                 reposCount = repositories.Count();
                 reponames = reposlist.Select(x => x.Name).ToList();
