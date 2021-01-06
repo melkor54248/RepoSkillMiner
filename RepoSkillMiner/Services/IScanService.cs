@@ -13,6 +13,7 @@ namespace RepoSkillMiner.Services
 
         public Task GetCommitsDetails(List<CommitsFull> commitsWithFiles, string url, HttpClient Http);
         public Task<Repository[]> GetRepositories(Organization organization, HttpClient Http);
+        public Task<Repository[]> GetRepositories(string owner, int pageNumber, HttpClient Http);
 
         public Task<Repository[]> GetRepositories(Organization organization, int pageNumber, HttpClient Http);
         public Task<Repository[]> GetRepositories(string owner, HttpClient Http);
