@@ -11,12 +11,14 @@
 
 <p>This component demonstrates scanning data from GitHub and extracting technologies information using Language Understanding Cognitive Services.</p>
 
-@if (organization == null)
+@if (organization == null && owner == null)
 {
-    <strong>Organization </strong>
+    <strong>Organization/User </strong>
 
 
     <input type="text" id="txt_search" @bind="@SearchString" />
+
+
 
     <SfProgressButton Content="Search" IsPrimary="true" @onclick="@Search"></SfProgressButton>
 
@@ -24,7 +26,16 @@
 }
 else
 {
-    <strong>Organization </strong>
+    @if (owner == null)
+    {
+        <strong>Organization </strong>
+
+    }
+    else
+    {
+        <strong>User </strong>
+
+    }
     <input type="text" class="marginTB10" id="txt_search" @bind="@SearchString" />
     <SfProgressButton Content="Search" IsPrimary="true" @onclick="@Search"></SfProgressButton>
     @if (reposCount >= 0)
@@ -42,10 +53,20 @@ else
                 <tbody>
 
                     <tr>
-                        <td>@organization.Name</td>
-                        <td><img src=@organization.Avatar_url alt=@organization.Name class="tdimg" /></td>
+                        @if (owner == null)
+                        {
+                            <td>@organization.Name</td>
+                            <td><img src=@organization.Avatar_url alt=@organization.Name class="tdimg" /></td>
 
-                        <td>@organization.Description</td>
+                            <td>@organization.Description</td>
+                        }
+                        else
+                        {
+                            <td>@owner.Name</td>
+                            <td><img src=@owner.Avatar_url alt=@owner.Login class="tdimg" /></td>
+
+                            <td>@owner.Bio</td>
+                        }
                     </tr>
 
                 </tbody>
@@ -98,12 +119,12 @@ else
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var author in authorsList.Where(x=>!string.IsNullOrEmpty(x.Login) ))
+                            @foreach (var author in authorsList.Where(x => !string.IsNullOrEmpty(x.Login)))
                             {
                                 var authorlink = "author/" + author.Login;
                                 <tr>
                                     <td>
-                                        <NavLink class="nav-link" href="@authorlink" >
+                                        <NavLink class="nav-link" href="@authorlink">
                                             <span aria-hidden="true"></span> @author.Login
                                         </NavLink>
                                     </td>

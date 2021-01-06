@@ -90,9 +90,18 @@ namespace RepoSkillMiner.Services
         /// </summary>
         /// <param name="SearchString">The name of the organization</param>
         /// <returns>An <see cref="Organization"/></returns>
-        public Task<Organization> GetOrganization(string SearchString, HttpClient Http)
+        public async Task<Organization> GetOrganization(string SearchString, HttpClient Http)
         {
-            return Http.GetFromJsonAsync<Organization>("https://api.github.com/orgs/" + SearchString);
+            using var httpResponse = await Http.GetAsync("https://api.github.com/orgs/" + SearchString);
+
+            if (!httpResponse.IsSuccessStatusCode)
+            {
+                // set error message for display, log to console and return
+                return await  httpResponse.Content.ReadFromJsonAsync<Organization>();
+
+            }
+            return null;
+           
         }
 
         /// <summary>
@@ -103,6 +112,15 @@ namespace RepoSkillMiner.Services
         public Task<Repository[]> GetRepositories(Organization organization, HttpClient Http)
         {
             return Http.GetFromJsonAsync<Repository[]>(organization.Repos_url + "?per_page=100");
+        }
+        /// <summary>
+        /// Get all Repositories for the given organization
+        /// </summary>
+        /// <param name="organization">The <see cref="Organization"/></param>
+        /// <returns>List of <see cref="Repository"/></returns>
+        public Task<Repository[]> GetRepositories(string owner, HttpClient Http)
+        {
+            return Http.GetFromJsonAsync<Repository[]>("https://api.github.com/users/"+owner+"/repos" + "?per_page=100");
         }
 
         /// <summary>
@@ -233,8 +251,16 @@ namespace RepoSkillMiner.Services
             client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", key);
 
             var endpointUri = String.Format(LuisEndPoint + "&q={0}", utterance.Substring(0, Math.Min(utterance.Length, 450)));
+            LuisResponse luisResponse=null;
+            try
+            {
+                  luisResponse = await http.GetFromJsonAsync<LuisResponse>(endpointUri);
+            }
+            catch (Exception ex)
+            {
 
-            LuisResponse luisResponse = await http.GetFromJsonAsync<LuisResponse>(endpointUri);
+                Console.WriteLine("GOTCHA:"  +ex.Message + ex.StackTrace);
+            }
 
             // Return the top scoring intent from Luis.
 
@@ -254,5 +280,9 @@ namespace RepoSkillMiner.Services
             return repositories.Where(x => x.Name == selectedRepo).Select(x => x.Commits_url.Replace("{/sha}", ""));
         }
 
+        public Task<User> GetUser(string searchString, HttpClient http)
+        {
+            return http.GetFromJsonAsync<User>("https://api.github.com/users/" + searchString);
+        }
     }
 }
