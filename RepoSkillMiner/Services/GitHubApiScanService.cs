@@ -259,11 +259,11 @@ namespace RepoSkillMiner.Services
             // The request header contains your subscription key
             client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", key);
 
-            var endpointUri = String.Format(LuisEndPoint + "&q={0}", utterance.Substring(0, Math.Min(utterance.Length, 450)));
-            LuisResponse luisResponse=null;
+            var endpointUri = String.Format(LuisEndPoint + "&query={0}", utterance.Substring(0, Math.Min(utterance.Length, 450)));
+            LuisResponseV3 luisResponse=null;
             try
             {
-                  luisResponse = await http.GetFromJsonAsync<LuisResponse>(endpointUri);
+                  luisResponse = await http.GetFromJsonAsync<LuisResponseV3>(endpointUri);
             }
             catch (Exception ex)
             {
@@ -273,7 +273,7 @@ namespace RepoSkillMiner.Services
 
             // Return the top scoring intent from Luis.
 
-            return luisResponse?.TopScoringIntent?.Intent;
+            return luisResponse?.prediction.topIntent; //TopScoringIntent?.Intent;
         }
 
         public   string LuisKey { get; set; }

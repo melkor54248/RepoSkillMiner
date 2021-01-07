@@ -1,5 +1,8 @@
 ﻿namespace GithubModels
 {
+    /// <summary>
+/// The response of the v2 LUIS API
+/// </summary>
     public class LuisResponse
     {
         public string Query { get; set; }
