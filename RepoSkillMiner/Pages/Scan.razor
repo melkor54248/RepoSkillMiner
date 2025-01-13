@@ -92,6 +92,8 @@ else
             }
             <input type="checkbox" id="ckluis" @bind="UseLuis">
             <label for="ckluis">LUIS </label>
+            <input type="checkbox" id="ckAzureOpenAI" @bind="UseAzureOpenAI">
+            <label for="ckAzureOpenAI">Azure OpenAI </label>
             @if (UseLuis)
             {<div class="marginTB10">
 
@@ -173,5 +175,3 @@ else
         width: 50%;
     }
 </style>
-
-

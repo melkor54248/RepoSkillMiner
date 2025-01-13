@@ -27,6 +27,7 @@ namespace RepoSkillMiner.Pages
         private bool scannpressed = false;
         private string url;
         private bool UseLuis = false;
+        private bool UseAzureOpenAI = false;
         private List<AuthorsAndTechs> authorsList = new List<AuthorsAndTechs>();
         private List<CommitsFull> commitsWithFiles;
         private Dictionary<string, string> languageslogos = new Dictionary<string, string>()
@@ -102,12 +103,19 @@ namespace RepoSkillMiner.Pages
             AppData.Configuration = Configuration;
             authorsList.Clear();
             scannpressed = true;
-            commitsWithFiles = await ScanRepos(repositories, reposToScan, selectedRepo);
-            AuthorsFull = service.GetAuthorDetails(commitsWithFiles);
-            
-            service.LuisKey = Configuration["LuisKey"];
-            service.LuisEndPoint = Configuration["LuisEndPoint"];
-            AppData.AuthorsAndTechs = await service.ReportFindingsAsync(commitsWithFiles, UseLuis, patchesToScan, authorsList, Http);
+            if (UseAzureOpenAI)
+            {
+                await service.ScanReposWithAzureOpenAI(repositories, reposToScan, selectedRepo, authorsList, Http);
+            }
+            else
+            {
+                commitsWithFiles = await ScanRepos(repositories, reposToScan, selectedRepo);
+                AuthorsFull = service.GetAuthorDetails(commitsWithFiles);
+                
+                service.LuisKey = Configuration["LuisKey"];
+                service.LuisEndPoint = Configuration["LuisEndPoint"];
+                AppData.AuthorsAndTechs = await service.ReportFindingsAsync(commitsWithFiles, UseLuis, patchesToScan, authorsList, Http);
+            }
         }
 
        
