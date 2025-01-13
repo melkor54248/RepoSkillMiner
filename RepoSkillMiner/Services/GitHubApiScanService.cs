@@ -259,7 +259,7 @@ namespace RepoSkillMiner.Services
             // The request header contains your subscription key
             client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", key);
 
-            var endpointUri = String.Format(LuisEndPoint + "&q={0}", utterance.Substring(0, Math.Min(utterance.Length, 450)));
+            var endpointUri = String.Format(LuisEndPoint + "&q={0}", utterance.Substring(0, Math.min(utterance.Length, 450)));
             LuisResponse luisResponse=null;
             try
             {
@@ -292,6 +292,101 @@ namespace RepoSkillMiner.Services
         public Task<User> GetUser(string searchString, HttpClient http)
         {
             return http.GetFromJsonAsync<User>("https://api.github.com/users/" + searchString);
+        }
+
+        public async Task ScanReposWithAzureOpenAI(Repository[] repositories, int reposToScan, string selectedRepo, List<AuthorsAndTechs> authorsList, HttpClient http)
+        {
+            var commitsWithFiles = await ScanRepos(repositories, reposToScan, selectedRepo);
+            AuthorsFull = GetAuthorDetails(commitsWithFiles);
+
+            var authors = commitsWithFiles.Select(x => x.Author?.Login).Distinct().ToList();
+            foreach (var author in authors)
+            {
+                var mycommits = commitsWithFiles.Where(x => x.Author != null && x.Author.Login == author).ToList();
+                var files = mycommits.Select(x => x.Files.Select(f => { f.Date = x.Commit.Committer.Date; return f; })).ToList();
+                var filesmerged = files.SelectMany(f => f).ToList();
+                var filenames = filesmerged.Select(n => n.Filename);
+
+                var techWithDates = new List<TechWithDates>();
+
+                var extentions = filenames.Where(f => f.Contains(".")).Select(x => x.Substring(x.LastIndexOf("."), x.Length - x.LastIndexOf("."))).GroupBy(x => x).
+    Select(y => new { Extention = y.Key, Count = y.Count() });
+                var extentionsreference = FileExtensions.GetXml;
+
+                var tech = new List<string>();
+                var techWeighted = new Dictionary<string, int>();
+                foreach (var file in filesmerged)
+                {
+                    var filename = file.Filename;
+                    if (filename.Contains('.'))
+                    {
+                        int pos = filename.LastIndexOf(".");
+                        var extention = filename.Substring(pos, filename.Length - pos);
+
+                        if (extentionsreference.Descendants("Extension").Any(x => x.Value == extention))
+                        {
+                            string techCanditate = extentionsreference.Descendants("Extension").FirstOrDefault(x => x.Value == extention).Parent.Parent.Element("Name").Value;
+                            if (!tech.Contains(techCanditate))
+                            {
+                                tech.Add(techCanditate);
+                                techWeighted.Add(techCanditate, extentions.Where(x => x.Extention == extention).Select(x => x.Count).FirstOrDefault());
+                            }
+                        }
+                    }
+                }
+
+                var patches = filesmerged.Select(x => new { x.Patch, x.Filename });
+                var csPatches = patches.Where(x => (x.Filename.EndsWith(".cs") || x.Filename.EndsWith(".js") || x.Filename.EndsWith(".html")) && !x.Filename.Contains("config.js"));
+                Console.WriteLine($"Patches count:{csPatches.Count()}");
+                int c = 1;
+                foreach (var patch in csPatches)
+                {
+                    if (patch != null)
+                    {
+                        if (c == 3)
+                        {
+                            System.Threading.Thread.Sleep(1000);
+                            c = 0;
+                        }
+                        c++;
+                        var techAzure = "";
+
+                        techAzure = await MakeAzureOpenAIRequestAsync(Configuration["AzureOpenAIKey"], patch.Patch ?? "none", http);
+                        if (techAzure != "None" && techAzure != null && !tech.Contains(techAzure))
+                        {
+                            tech.Add(techAzure);
+                            techWeighted.Add(techAzure, 1);
+                            Console.WriteLine($"Azure OpenAI match: {techAzure} in file: {patch.Filename}, Utterance:{patch.Patch}");
+                        }
+                        if (techAzure != "None" && techWeighted.ContainsKey(techAzure.ToString()))
+                        {
+                            techWeighted[techAzure]++;
+                        }
+                    }
+                }
+
+                authorsList.Add(new AuthorsAndTechs() { Login = author, Avatar_url = AuthorsFull.Where(a => a.Login == author).Select(a => a.Avatar_url).FirstOrDefault(), Technologies = techWeighted.Select(p => new GithubModels.TechnologiesCount { Name = p.Key, Count = p.Value }).ToList(), TechWithDates = techWithDates });
+            }
+        }
+
+        private async Task<string> MakeAzureOpenAIRequestAsync(string key, string utterance, HttpClient http)
+        {
+            var client = new System.Net.Http.HttpClient();
+
+            client.DefaultRequestHeaders.Add("Ocp-Apim-Subscription-Key", key);
+
+            var endpointUri = String.Format(Configuration["AzureOpenAIEndpoint"] + "&q={0}", utterance.Substring(0, Math.Min(utterance.Length, 450)));
+            AzureOpenAIResponse azureOpenAIResponse = null;
+            try
+            {
+                azureOpenAIResponse = await http.GetFromJsonAsync<AzureOpenAIResponse>(endpointUri);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GOTCHA:" + ex.Message + ex.StackTrace);
+            }
+
+            return azureOpenAIResponse?.TopScoringIntent?.Intent;
         }
     }
 }
