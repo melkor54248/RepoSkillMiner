@@ -106,6 +106,8 @@ else
             <p></p>
             <SfProgressButton Content="Scan" IsPrimary="true" @onclick="@InitScan"></SfProgressButton>
             <p></p>
+            <SfButton Content="Export to Excel" IsPrimary="true" @onclick="@ExportToExcel"></SfButton>
+            <p></p>
             @if (authorsList.Count > 0)
             {
                 <div>
@@ -174,4 +176,9 @@ else
     }
 </style>
 
-
+@code {
+    private async Task ExportToExcel()
+    {
+        await service.ExportToExcel(authorsList);
+    }
+}

@@ -90,6 +90,9 @@ namespace RepoSkillMiner.Pages
 
         [Inject]
         private IScanService service { get; set; }
+
+        [Inject]
+        private IExcelExportService excelExportService { get; set; }
         #endregion Dependency Injection
 
 
@@ -108,6 +111,7 @@ namespace RepoSkillMiner.Pages
             service.LuisKey = Configuration["LuisKey"];
             service.LuisEndPoint = Configuration["LuisEndPoint"];
             AppData.AuthorsAndTechs = await service.ReportFindingsAsync(commitsWithFiles, UseLuis, patchesToScan, authorsList, Http);
+            await ExportToExcel();
         }
 
        
@@ -205,6 +209,11 @@ namespace RepoSkillMiner.Pages
             }
 
             return commitsWithFiles;
+        }
+
+        private async Task ExportToExcel()
+        {
+            await excelExportService.ExportToExcel(authorsList);
         }
 
        
