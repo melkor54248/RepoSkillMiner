@@ -25,6 +25,7 @@ namespace RepoSkillMiner
             builder.Services.AddSingleton<AppData>();
             builder.Services.AddSingleton<AppState>();
             builder.Services.AddSyncfusionBlazor();
+            builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
             await builder.Build().RunAsync();
         }
     }
